@@ -1,6 +1,22 @@
 schemaVersion: 2.1.0
 metadata:
   generateName: vscode
+components:
+  - name: tools
+    container:
+      image: quay.io/devfile/universal-developer-image:ubi8-0e189d9
+      memoryLimit: 3Gi
+commands:
+  - id: run-main-script
+    exec:
+      label: "Run main.sh script"
+      component: tools
+      workingDir: '${PROJECT_SOURCE}'
+      commandLine: |
+        ./main.sh
+      group:
+        kind: run
+        isDefault: true
 attributes:
   che-editor.yaml: |
     inline:
