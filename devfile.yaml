@@ -6,76 +6,65 @@ attributes:
     inline:
       schemaVersion: 2.1.0
       metadata:
-        name: che-code
+        name: IntelliJ IDEA Community Edition
       commands:
         - id: init-container-command
           apply:
-            component: che-code-injector
+            component: che-idea-injector
       events:
         preStart:
           - init-container-command
       components:
-        - name: che-code-injector
+        - name: che-idea-runtime-description
           container:
-            image: 'quay.io/che-incubator/che-code:insiders'
-            command: ["/entrypoint-init-container.sh"]
+            image: 'quay.io/devfile/universal-developer-image:ubi8-eda6672'
+            command: 
+              - /projector/entrypoint-volume.sh
+            env:
+              - name: PROJECTOR_ASSEMBLY_DIR
+                value: /projector
+              - name: PROJECTOR_CONFIG_DIR
+                value: /home/user/.jetbrains
             volumeMounts:
-              - name: checode
-                path: /checode
-            memoryLimit: 128Mi
-            memoryRequest: 32Mi
-            cpuLimit: 500m
-            cpuRequest: 30m
-        - name: che-code-runtime-description
-          container:
-            image: 'quay.io/devfile/universal-developer-image:ubi8-770ea4a'
-            memoryLimit: 1024Mi
+              - name: projector-volume
+                path: /projector
+            memoryLimit: 2048Mi
             memoryRequest: 256Mi
             cpuLimit: 500m
             cpuRequest: 30m
-            command:
-              - /checode/entrypoint-volume.sh
-            volumeMounts:
-              - name: checode
-                path: /checode
             endpoints:
-              - name: che-code
+              - name: intellij
                 attributes:
                   type: main
                   cookiesAuthEnabled: true
                   discoverable: false
                   urlRewriteSupported: true
-                path: '?tkn=eclipse-che'
-                targetPort: 3100
+                targetPort: 8887
                 exposure: public
-                secure: true
+                path: '/?backgroundColor=434343&wss'
+                secure: false
                 protocol: http
-              - name: code-redirect-1
-                targetPort: 13131
-                exposure: public
-                protocol: http
-                attributes:
-                  discoverable: false
-                  urlRewriteSupported: true
-              - name: code-redirect-2
-                targetPort: 13132
-                exposure: public
-                protocol: http
-                attributes:
-                  discoverable: false
-                  urlRewriteSupported: true
-              - name: code-redirect-3
-                targetPort: 13133
-                exposure: public
-                protocol: http
-                attributes:
-                  discoverable: false
-                  urlRewriteSupported: true
           attributes:
-            app.kubernetes.io/component: che-code-runtime
-            app.kubernetes.io/part-of: che-code.eclipse.org
-        - name: checode
+            app.kubernetes.io/component: che-idea-injector
+            app.kubernetes.io/part-of: che-idea.eclipse.org
+        - name: projector-volume
           volume: {}
+        - name: che-idea-injector
+          container:
+            image: 'quay.io/che-incubator/che-idea:2020.3.4-next'
+            command: ["/projector/entrypoint-init-container.sh"]
+            env:
+              - name: PROJECTOR_VOLUME_MOUNT
+                value: /projector-volume
+              - name: PROJECTOR_ASSEMBLY_DIR
+                value: /projector
+            volumeMounts:
+              - name: projector-volume
+                path: /projector-volume
+            memoryLimit: 128Mi
+            memoryRequest: 32Mi
+            cpuLimit: 500m
+            cpuRequest: 30m
 components:
   - name: dev
     container:
