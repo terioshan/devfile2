@@ -6,65 +6,86 @@ attributes:
     inline:
     schemaVersion: 2.1.0
     metadata:
-      name: IntelliJ IDEA Community Edition
+      name: che-incubator/che-code/insiders
+      displayName: che-code
+      description: Code OSS integration in Eclipse Che.
+      icon: https://raw.githubusercontent.com/che-incubator/che-code/main/code/resources/server/code-512.png?sanitize=true
+      attributes:
+        publisher: che-incubator
+        version: insiders
+        title: CheCode Insiders.
+        repository: https://github.com/che-incubator/che-code
+        firstPublicationDate: '2021-10-31'
+        skipMetaYaml: true
     commands:
       - id: init-container-command
         apply:
-          component: che-idea-injector
+          component: che-code-injector
     events:
       preStart:
         - init-container-command
     components:
-      - name: che-idea-runtime-description
+      - name: che-code-injector
         container:
-          image: 'quay.io/devfile/universal-developer-image:ubi8-eda6672'
-          command: 
-            - /projector/entrypoint-volume.sh
-          env:
-            - name: PROJECTOR_ASSEMBLY_DIR
-              value: /projector
-            - name: PROJECTOR_CONFIG_DIR
-              value: /home/user/.jetbrains
+          image: 'quay.io/che-incubator/che-code:insiders'
+          command: ["/entrypoint-init-container.sh"]
           volumeMounts:
-            - name: projector-volume
-              path: /projector
-          memoryLimit: 2048Mi
+            - name: checode
+              path: /checode
+          memoryLimit: 128Mi
+          memoryRequest: 32Mi
+          cpuLimit: 500m
+          cpuRequest: 30m
+      - name: che-code-runtime-description
+        container:
+          image: 'quay.io/devfile/universal-developer-image:ubi8-770ea4a'
+          memoryLimit: 1024Mi
           memoryRequest: 256Mi
           cpuLimit: 500m
           cpuRequest: 30m
+          command:
+            - /checode/entrypoint-volume.sh
+          volumeMounts:
+            - name: checode
+              path: /checode
           endpoints:
-            - name: intellij
+            - name: che-code
               attributes:
                 type: main
                 cookiesAuthEnabled: true
                 discoverable: false
                 urlRewriteSupported: true
-              targetPort: 8887
+              path: '?tkn=eclipse-che'
+              targetPort: 3100
               exposure: public
-              path: '/?backgroundColor=434343&wss'
-              secure: false
+              secure: true
               protocol: http
+            - name: code-redirect-1
+              targetPort: 13131
+              exposure: public
+              protocol: http
+              attributes:
+                discoverable: false
+                urlRewriteSupported: true
+            - name: code-redirect-2
+              targetPort: 13132
+              exposure: public
+              protocol: http
+              attributes:
+                discoverable: false
+                urlRewriteSupported: true
+            - name: code-redirect-3
+              targetPort: 13133
+              exposure: public
+              protocol: http
+              attributes:
+                discoverable: false
+                urlRewriteSupported: true
         attributes:
-          app.kubernetes.io/component: che-idea-injector
-          app.kubernetes.io/part-of: che-idea.eclipse.org
-      - name: projector-volume
+          app.kubernetes.io/component: che-code-runtime
+          app.kubernetes.io/part-of: che-code.eclipse.org
+      - name: checode
         volume: {}
-      - name: che-idea-injector
-        container:
-          image: 'quay.io/che-incubator/che-idea:2020.3.4-next'
-          command: ["/projector/entrypoint-init-container.sh"]
-          env:
-            - name: PROJECTOR_VOLUME_MOUNT
-              value: /projector-volume
-            - name: PROJECTOR_ASSEMBLY_DIR
-              value: /projector
-          volumeMounts:
-            - name: projector-volume
-              path: /projector-volume
-          memoryLimit: 128Mi
-          memoryRequest: 32Mi
-          cpuLimit: 500m
-          cpuRequest: 30m
 components:
   - name: dev
     container:
